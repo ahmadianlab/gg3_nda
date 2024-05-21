@@ -36,8 +36,18 @@ def get_transition_mtx( states:NDArray, sigma:float, dt:float):
         trans_mtx[i,:]= trans_mtx[i,:]/ np.linalg.norm(trans_mtx[i,:],ord=1)
     return trans_mtx
 
+def simulate_chain(pi:NDArray,trans_mtx:NDArray,T:int):
+    s = []
+    p = pi
+    for i in range(1,T):
+        sample = np.random.choice(50,p=pi)
+        s.append(sample)
+        p = p @ trans_mtx
+    return np.array(s,dtype=int)
+
 if __name__=="__main__":
-    state_space, dt = get_interval(5)
-    print(state_space)
-    print(get_init_distr(state_space,0.5,0.3,1))
-    print(get_transition_mtx(state_space,0.3,1))
+    state_space, dt = get_interval(50)
+    pi = get_init_distr(state_space,0.3,0.25, 1.0)
+    trans_mtx = get_transition_mtx(state_space, 0.3, 1)
+    path = simulate_chain(pi,trans_mtx,10)
+    print(path)
