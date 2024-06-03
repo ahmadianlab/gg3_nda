@@ -40,9 +40,9 @@ def sweep_ramp_models(datas, normalize = False):
             model = HMM_Ramp(beta_space[i], sigma_space[j], K, x0, Rh, T)
             l_matrix[i][j] = compute_ll(model, datas)
     if normalize:
-        return l_matrix - np.min(l_matrix), np.min(l_matrix)
+        return l_matrix - np.max(l_matrix), np.max(l_matrix)
     else:
-        return l_matrix - np.min(l_matrix)
+        return l_matrix - np.max(l_matrix)
 
 def sweep_step_models(datas, normalize = False):
     l_matrix = np.empty([len(m_space), len(r_space)])
@@ -51,9 +51,9 @@ def sweep_step_models(datas, normalize = False):
             model = HMM_Step(m_space[i], r_space[j], x0, Rh, T)
             l_matrix[i][j] = compute_ll(model, datas)
     if normalize:
-        return l_matrix - np.min(l_matrix), np.min(l_matrix)
+        return l_matrix - np.max(l_matrix), np.max(l_matrix)
     else:
-        return l_matrix - np.min(l_matrix)
+        return l_matrix - np.max(l_matrix)
 
 def compute_normalizer(likelihood, priori):
     mat = np.empty_like(likelihood)
