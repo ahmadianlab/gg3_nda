@@ -1,8 +1,33 @@
 import numpy as np
+import numpy.random as npr
+
+def lo_histogram(x, bins):
+    """
+    Left-open version of np.histogram with left-open bins covering the interval (left_edge, right_edge]
+    (np.histogram does the opposite and treats bins as right-open.)
+    Input & output behaviour is exactly the same as np.histogram
+    """
+    out = np.histogram(-x, -bins[::-1])
+    return out[0][::-1], out[1:]
+
+def gamma_isi_point_process(rate, shape):
+    """
+    Simulates (1 trial of) a sub-poisson point process (with underdispersed inter-spike intervals relative to Poisson)
+    :param rate: time-series giving the mean spike count (firing rate * dt) in different time bins (= time steps)
+    :param shape: shape parameter of the gamma distribution of ISI's
+    :return: vector of spike counts with same shape as "rate".
+    """
+    sum_r_t = np.hstack((0, np.cumsum(rate)))
+    gs = np.zeros(2)
+    while gs[-1] < sum_r_t[-1]:
+        gs = np.cumsum( npr.gamma(shape, 1 / shape, size=(2 + int(2 * sum_r_t[-1]),)) )
+    y, _ = lo_histogram(gs, sum_r_t)
+
+    return y
 
 class HMM_Step():
 
-    def __init__(self, m=50, r=10, x0 = 0.2, Rh=50, T = 100):
+    def __init__(self, m=50, r=10, x0 = 0.2, Rh=50, T = 100, isi_gamma_shape = None):
         
         self.m = m
         self.r = r
@@ -11,6 +36,7 @@ class HMM_Step():
         self.Rh = Rh
         self.T = T
         self.dt = 1/T
+        self.isi_gamma_shape = isi_gamma_shape
 
         self.states = np.arange(self.r+1)
 
@@ -29,7 +55,14 @@ class HMM_Step():
         self.lambdas[-1] = self.Rh * self.dt
 
     def emit(self, rate):
-        y = np.random.poisson(rate * self.dt)
+
+        if self.isi_gamma_shape is None:
+            # poisson spike emissions
+            y = npr.poisson(rate * self.dt)
+        else:
+            # sub-poisson/underdispersed spike emissions
+            y = gamma_isi_point_process(rate * self.dt, self.isi_gamma_shape)
+
         return y
 
     def simulate(self):
@@ -48,7 +81,7 @@ class HMM_Step():
     
 class HMM_Ramp():
 
-    def __init__(self, bet=0.5, sig=0.2, K=100, x0 = 0.2, Rh=50, T = 100):
+    def __init__(self, bet=0.5, sig=0.2, K=100, x0 = 0.2, Rh=50, T = 100, isi_gamma_shape = None):
         
         self.bet = bet
         self.sig = sig
@@ -57,6 +90,7 @@ class HMM_Ramp():
         self.Rh = Rh
         self.T = T
         self.dt = 1/T
+        self.isi_gamma_shape = isi_gamma_shape
 
         self.states = np.arange(self.K)
 
@@ -77,7 +111,14 @@ class HMM_Ramp():
         self.lambdas = np.arange(self.K)/(self.K-1)*self.Rh*self.dt
 
     def emit(self, rate):
-        y = np.random.poisson(rate * self.dt)
+
+        if self.isi_gamma_shape is None:
+            # poisson spike emissions
+            y = npr.poisson(rate * self.dt)
+        else:
+            # sub-poisson/underdispersed spike emissions
+            y = gamma_isi_point_process(rate * self.dt, self.isi_gamma_shape)
+
         return y
 
     def simulate(self):
